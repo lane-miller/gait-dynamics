@@ -6,6 +6,8 @@ import numpy as np
 import pytest
 from tests.conftest import make_synthetic_acc
 from gait_dynamics.features.extraction import (
+    FEATURE_REGISTRY,
+    build_feature_matrix,
     compute_cadence,
     compute_spectral_features,
     compute_stride_symmetry,
@@ -54,3 +56,28 @@ class TestComputeSpectralFeatures:
         """Spectral entropy of a narrow-band signal must lie within [0, 1]."""
         result = compute_spectral_features(synthetic_acc, sample_rate)
         assert 0.0 <= result["spectral_entropy"] <= 1.0
+
+
+class TestBuildFeatureMatrix:
+
+    def test_output_shape_is_n_windows_by_n_features(self, synthetic_acc, sample_rate):
+        """All-feature matrix from one window must have shape (1, 4).
+
+        Column count: cadence→1, stride_symmetry→1, spectral→2 = 4 total.
+        """
+        windows = np.expand_dims(synthetic_acc, 0)   # (1, 1000, 3)
+        result = build_feature_matrix(windows, sample_rate, list(FEATURE_REGISTRY))
+        assert result.shape == (1, 4)
+
+    def test_raises_value_error_for_unknown_feature_name(self, synthetic_acc, sample_rate):
+        """Unregistered feature name must raise ValueError naming the bad key."""
+        windows = np.expand_dims(synthetic_acc, 0)
+        with pytest.raises(ValueError, match="unknown_feat"):
+            build_feature_matrix(windows, sample_rate, ["unknown_feat"])
+
+    def test_all_features_has_more_columns_than_single_feature(self, synthetic_acc, sample_rate):
+        """Selecting all registry features must yield more columns than cadence alone."""
+        windows = np.expand_dims(synthetic_acc, 0)
+        all_cols = build_feature_matrix(windows, sample_rate, list(FEATURE_REGISTRY)).shape[1]
+        one_col = build_feature_matrix(windows, sample_rate, ["cadence"]).shape[1]
+        assert all_cols > one_col

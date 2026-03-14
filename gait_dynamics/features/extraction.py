@@ -183,3 +183,99 @@ def compute_spectral_features(acc: np.ndarray, sample_rate: int) -> dict:
         "dominant_frequency": dominant_frequency,
         "spectral_entropy": spectral_entropy,
     }
+
+
+# ── Feature registry ──────────────────────────────────────────────────────────
+
+FEATURE_REGISTRY: dict[str, callable] = {
+    "cadence": compute_cadence,
+    "stride_symmetry": compute_stride_symmetry,
+    "spectral": compute_spectral_features,
+}
+
+
+# ── Feature matrix builder ────────────────────────────────────────────────────
+
+def _coerce_to_array(result) -> np.ndarray:
+    """Convert a feature function's return value to a 1-D float64 array."""
+    if isinstance(result, dict):
+        return np.array(list(result.values()), dtype=np.float64)
+    return np.array([result], dtype=np.float64)
+
+
+def build_feature_matrix(
+    windows: np.ndarray,
+    sample_rate: int,
+    feature_names: list[str],
+) -> np.ndarray:
+    """
+    Extract features from each window and assemble a 2-D feature matrix.
+
+    For every window the selected feature functions are called in order and
+    their outputs are concatenated into a single row vector.  Scalar returns
+    (``float``) contribute one column; ``dict`` returns contribute one column
+    per value, in insertion order.
+
+    Parameters
+    ----------
+    windows : np.ndarray
+        Segmented signal of shape ``(n_windows, window_size, n_axes)`` as
+        produced by :func:`~gait_dynamics.data.preprocess.window_signal`.
+    sample_rate : int
+        Sampling rate of the original signal in Hz, forwarded to each
+        feature function.
+    feature_names : list[str]
+        Ordered list of keys from :data:`FEATURE_REGISTRY` selecting which
+        features to compute.  The column order of the output matrix follows
+        the order of this list.
+
+    Returns
+    -------
+    np.ndarray
+        Feature matrix of shape ``(n_windows, n_features)`` with dtype
+        ``float64``.  ``n_features`` is the sum of the output widths of the
+        selected functions (1 per scalar return, ``len(dict)`` per dict
+        return).
+
+    Raises
+    ------
+    ValueError
+        If any name in ``feature_names`` is not a key in
+        :data:`FEATURE_REGISTRY`.  All unknown names are reported together.
+
+    Notes
+    -----
+    Column width contributed by each registry entry:
+
+    * ``"cadence"`` → 1 (scalar ``float``)
+    * ``"stride_symmetry"`` → 1 (scalar ``float``)
+    * ``"spectral"`` → 2 (``dominant_frequency``, ``spectral_entropy``)
+
+    Feature columns are ordered by ``feature_names`` list order, then by
+    dict insertion order within each spectral feature. This ordering is
+    stable in Python 3.7+ and must be consistent between training and
+    inference runs.
+    """
+    unknown = [n for n in feature_names if n not in FEATURE_REGISTRY]
+    if unknown:
+        raise ValueError(
+            f"Unknown feature name(s): {unknown}. "
+            f"Valid options are: {sorted(FEATURE_REGISTRY)}"
+        )
+
+    if len(windows) == 0:
+        return np.empty((0, 0), dtype=np.float64)
+
+    funcs = [FEATURE_REGISTRY[n] for n in feature_names]
+
+    # Dry-run on the first window to determine n_features, then pre-allocate.
+    first_parts = [_coerce_to_array(fn(windows[0], sample_rate)) for fn in funcs]
+    n_features = sum(p.shape[0] for p in first_parts)
+    out = np.empty((len(windows), n_features), dtype=np.float64)
+    out[0] = np.concatenate(first_parts)
+
+    for i in range(1, len(windows)):
+        parts = [_coerce_to_array(fn(windows[i], sample_rate)) for fn in funcs]
+        out[i] = np.concatenate(parts)
+
+    return out
