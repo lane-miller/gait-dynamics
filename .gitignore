@@ -212,3 +212,4 @@ data/processed/
 db/
 *.db
 .env
+.venv/
