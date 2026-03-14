@@ -9,4 +9,4 @@ requires-python = ">=3.11"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["gait_dynamics*", "tests*"]
+include = ["gait_dynamics*", "tests*", "scripts*"]

@@ -29,7 +29,7 @@ from xgboost import XGBClassifier
 
 _VALID_MODEL_TYPES = ("xgb", "svm", "lr")
 
-_ACTIVITY_LABELS = [
+ACTIVITY_LABELS = [
     "level_walking",
     "stair_ascent",
     "stair_descent",
@@ -164,7 +164,7 @@ def train_evaluate(
         "classification_report": classification_report(
             y_test,
             y_pred,
-            target_names=_ACTIVITY_LABELS,
+            target_names=ACTIVITY_LABELS,
             zero_division=0,
         ),
         "n_train": int(len(y_train)),
