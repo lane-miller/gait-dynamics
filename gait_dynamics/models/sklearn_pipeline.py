@@ -57,8 +57,7 @@ def build_pipeline(model_type: str = "xgb") -> Pipeline:
             SVC with ``kernel="rbf"``, ``random_state=42``,
             and ``probability=True``.
         ``"lr"``
-            LogisticRegression with ``max_iter=1000``, ``random_state=42``,
-            and ``multi_class="multinomial"``.
+            LogisticRegression with ``max_iter=1000``, ``random_state=42``
 
         Default is ``"xgb"``.
 
@@ -95,7 +94,6 @@ def build_pipeline(model_type: str = "xgb") -> Pipeline:
         classifier = LogisticRegression(
             max_iter=1000,
             random_state=42,
-            multi_class="multinomial",
         )
 
     return Pipeline(
