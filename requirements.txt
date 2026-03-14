@@ -7,3 +7,4 @@ pytest
 pytest-cov
 matplotlib
 wfdb
+xgboost
