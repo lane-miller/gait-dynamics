@@ -8,6 +8,8 @@ feature computation from 3-axis accelerometer data.
 import numpy as np
 from scipy.signal import find_peaks, welch
 
+_PROMINENCE_SCALE = 0.3  # fraction of signal std used for peak prominence filtering
+
 
 def compute_cadence(acc: np.ndarray, sample_rate: int) -> float:
     """
@@ -49,7 +51,7 @@ def compute_cadence(acc: np.ndarray, sample_rate: int) -> float:
     peaks, _ = find_peaks(
         vertical,
         distance=min_distance,
-        prominence=np.std(vertical) * 0.3,
+        prominence=np.std(vertical) * _PROMINENCE_SCALE,
     )
 
     if len(peaks) < 2:
