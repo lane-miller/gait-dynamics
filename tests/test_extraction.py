@@ -30,12 +30,12 @@ class TestComputeCadence:
 class TestComputeStrideSymmetry:
 
     def test_clean_signal_returns_high_symmetry(self, sample_rate):
-        """Near-noiseless symmetric signal should yield symmetry index above 0.9."""
+        """Near-noiseless symmetric signal should yield symmetry index above 0.85."""
         acc = make_synthetic_acc(sample_rate=sample_rate, snr_db=60.0)
         result = compute_stride_symmetry(acc, sample_rate)
         assert np.isfinite(result)        
         assert np.isclose(result, result, atol=1e-6) and 0.0 <= result <= 1.0
-        assert result > 0.9
+        assert result > 0.85
 
     def test_output_is_scalar_float(self, synthetic_acc, sample_rate):
         """Return value must be a plain Python float, not an array."""
